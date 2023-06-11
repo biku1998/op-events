@@ -1,0 +1,97 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URI")
+}
+
+model User {
+  id              String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  firstName       String    @map("first_name")
+  lastName        String    @map("last_name")
+  email           String    @unique
+  avatarUrl       String?
+  createdAt       DateTime? @default(now()) @map("created_at")
+  updatedAt       DateTime? @map("updated_at")
+  createdProjects Project[] @relation("createdByUser")
+  updatedProjects Project[] @relation("updatedByUser")
+  createdChannels Channel[] @relation("createdByUser")
+  updatedChannels Channel[] @relation("updatedByUser")
+
+  @@map("users")
+}
+
+// CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+
+model Project {
+  id          String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  name        String
+  description String?
+  createdBy   String    @map("created_by") @db.Uuid
+  updatedBy   String    @map("updated_by") @db.Uuid
+  createdAt   DateTime? @default(now()) @map("created_at")
+  updatedAt   DateTime? @map("updated_at")
+
+  // relations
+  createdByUser User      @relation("createdByUser", fields: [createdBy], references: [id], onDelete: Cascade)
+  updatedByUser User      @relation("updatedByUser", fields: [updatedBy], references: [id])
+  channels      Channel[]
+  events        Event[]
+
+  @@map("projects")
+}
+
+model ApiKey {
+  id        String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  name      String
+  keyHash   String    @map("key_hash")
+  createdBy String    @map("created_by") @db.Uuid
+  updatedBy String    @map("updated_by") @db.Uuid
+  createdAt DateTime? @default(now()) @map("created_at")
+  updatedAt DateTime? @map("updated_at")
+
+  // save first and last 4 characters for preview
+  lastCharacters  String? @map("last_characters")
+  firstCharacters String? @map("first_characters")
+
+  @@map("api_keys")
+}
+
+model Channel {
+  id          String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  name        String
+  description String
+  projectId   String    @map("project_id") @db.Uuid
+  createdBy   String    @map("created_by") @db.Uuid
+  updatedBy   String    @map("updated_by") @db.Uuid
+  createdAt   DateTime? @default(now()) @map("created_at")
+  updatedAt   DateTime? @map("updated_at")
+
+  // relations
+  createdByUser User    @relation("createdByUser", fields: [createdBy], references: [id])
+  updatedByUser User    @relation("updatedByUser", fields: [updatedBy], references: [id])
+  project       Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  events        Event[]
+
+  @@index([projectId, id])
+  @@map("channels")
+}
+
+model Event {
+  id          Int       @id @default(autoincrement())
+  icon        String?
+  description String?
+  projectId   String    @map("project_id") @db.Uuid
+  channelId   String    @map("channel_id") @db.Uuid
+  createdAt   DateTime? @default(now()) @map("created_at")
+  updatedAt   DateTime? @map("updated_at")
+
+  // relations
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  channel Channel @relation(fields: [channelId], references: [id], onDelete: Cascade)
+
+  @@index([projectId, channelId, id])
+  @@map("events")
+}
