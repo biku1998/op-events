@@ -23,8 +23,6 @@ model User {
   @@map("users")
 }
 
-// CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
-
 model Project {
   id          String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
   name        String
